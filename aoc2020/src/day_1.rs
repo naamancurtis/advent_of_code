@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-use std::cmp::Ordering;
+use std::{cmp::Ordering, collections::HashSet};
 
 const EXPENSE_REPORT: [u32; 200] = [
     1728, 1621, 1856, 1683, 1940, 1097, 1711, 1906, 2008, 1608, 2003, 1990, 1864, 1035, 1981, 1978,
@@ -17,30 +15,23 @@ const EXPENSE_REPORT: [u32; 200] = [
     1248, 617, 1927, 1527, 1819, 1350, 1807, 1722, 1016, 1700, 111, 1629, 1932, 1644, 1454, 1987,
     1925, 1953, 1743, 1180, 1782, 1523, 1245, 1620,
 ];
+
 const TARGET_SUM: u32 = 2020;
 
 pub fn solve_expense_report(input: &[u32]) -> u32 {
-    let mut input = input.to_vec();
-    input.sort_unstable();
-    let mut left_ptr = 0;
-    let mut right_ptr = input.len() - 1;
-    while left_ptr <= right_ptr {
-        match (input[left_ptr] + input[right_ptr]).cmp(&TARGET_SUM) {
-            Ordering::Equal => return input[left_ptr] * input[right_ptr],
-            Ordering::Less => {
-                left_ptr += 1;
-            }
-            Ordering::Greater => {
-                right_ptr -= 1;
-            }
+    let mut set = HashSet::new();
+    for num in input {
+        if let Some(existing_num) = set.get(&(TARGET_SUM - num)) {
+            return *existing_num * num;
         }
+        set.insert(num);
     }
-    0
+    unreachable!()
 }
 
 pub fn solve_expense_report_2(input: &[u32]) -> u32 {
     let mut input = input.to_vec();
-    input.sort_unstable();
+    input.sort_unstable(); // nlog(n)
 
     for i in 0..input.len() - 1 {
         let current_target = TARGET_SUM - input[i];
@@ -72,10 +63,11 @@ fn helper(input: &[u32], target: u32) -> Option<(u32, u32)> {
 mod tests {
     use super::*;
 
+    const TEST_INPUT: [u32; 6] = [1721, 979, 366, 299, 675, 1456];
+
     #[test]
     fn puzzle_report_test() {
-        let input = vec![1721, 979, 366, 299, 675, 1456];
-        assert_eq!(solve_expense_report(&input), 514579);
+        assert_eq!(solve_expense_report(&TEST_INPUT), 514579);
     }
 
     #[test]
@@ -85,8 +77,7 @@ mod tests {
 
     #[test]
     fn puzzle_report_test_2() {
-        let input = vec![1721, 979, 366, 299, 675, 1456];
-        assert_eq!(solve_expense_report_2(&input), 241861950);
+        assert_eq!(solve_expense_report_2(&TEST_INPUT), 241861950);
     }
 
     #[test]

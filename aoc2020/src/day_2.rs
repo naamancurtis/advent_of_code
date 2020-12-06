@@ -18,7 +18,7 @@ mod puzzle_1 {
     impl IsValidPassword for PasswordDetails {
         fn new(input: (&str, &str)) -> Self {
             // This is really hacky, but as we know the input is consistent I can be lazy
-            // and do all this with unwraps and confidence in the input
+            // and do all this with unwraps
             let mut requirements = input.0.split_ascii_whitespace();
             let mut min_max = requirements.next().unwrap().split('-');
             let min: i8 = min_max.next().unwrap().parse().unwrap();

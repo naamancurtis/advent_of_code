@@ -1,19 +1,10 @@
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-};
+use crate::get_input_from_file;
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct Seat {
     pub row: u32,
     pub col: u32,
     pub id: u32,
-}
-
-fn get_input_from_file() -> Vec<String> {
-    let file = File::open("./data/day_5.txt").expect("file failed to open");
-    let reader = BufReader::new(file);
-    reader.lines().filter_map(|s| s.ok()).collect()
 }
 
 pub fn parse_seat_information(input: String) -> Seat {
@@ -49,7 +40,7 @@ mod puzzle_1 {
     use super::*;
 
     pub fn find_highest_id() -> u32 {
-        let input = get_input_from_file();
+        let input = get_input_from_file("./data/day_5.txt");
         if let Some(seat) = input
             .into_iter()
             .map(parse_seat_information)
@@ -57,7 +48,7 @@ mod puzzle_1 {
         {
             return seat.id;
         }
-        0
+        unreachable!();
     }
 }
 
@@ -65,7 +56,7 @@ mod puzzle_2 {
     use super::*;
 
     pub fn find_missing_seat() -> u32 {
-        let mut input: Vec<u32> = get_input_from_file()
+        let mut input: Vec<u32> = get_input_from_file("./data/day_5.txt")
             .into_iter()
             .map(|s| parse_seat_information(s).id)
             .collect();

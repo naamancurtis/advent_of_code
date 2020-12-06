@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub enum Square {
     Clear,
@@ -16,10 +14,6 @@ impl From<char> for Square {
     }
 }
 
-pub trait Navigation {
-    fn navigate(i: usize, j: usize, input: &[Vec<Square>]) -> (usize, usize);
-}
-
 pub fn parse_input(input: &[&str]) -> Vec<Vec<Square>> {
     input
         .iter()
@@ -27,13 +21,24 @@ pub fn parse_input(input: &[&str]) -> Vec<Vec<Square>> {
         .collect()
 }
 
-pub fn taboggan_trajectory<T: Navigation>(input: &[&str]) -> u32 {
+fn navigate(
+    i: usize,
+    j: usize,
+    right_jump: usize,
+    down_jump: usize,
+    max_x_len: usize,
+) -> (usize, usize) {
+    let i = i + down_jump;
+    let j = (j + right_jump) % max_x_len;
+    (i, j)
+}
+
+pub fn taboggan_trajectory(input: &[Vec<Square>], right_jump: usize, down_jump: usize) -> u32 {
     let mut counter = 0;
-    let input = parse_input(input);
     let mut i = 0;
     let mut j = 0;
     loop {
-        let result = T::navigate(i, j, &input);
+        let result = navigate(i, j, right_jump, down_jump, input[0].len());
         i = result.0;
         j = result.1;
         if i >= input.len() {
@@ -46,66 +51,26 @@ pub fn taboggan_trajectory<T: Navigation>(input: &[&str]) -> u32 {
     counter
 }
 
-mod puzzle_1 {
-    use super::{Navigation, Square};
-
-    pub struct Puzzle1;
-
-    impl Navigation for Puzzle1 {
-        fn navigate(i: usize, j: usize, input: &[Vec<Square>]) -> (usize, usize) {
-            let max_x = input[0].len();
-            let i = i + 1;
-            let j = (j + 3) % max_x;
-            (i, j)
-        }
-    }
-}
-
 mod puzzle_2 {
     use super::*;
     use std::sync::{mpsc, Arc};
     use std::thread;
 
-    fn navigate(
-        i: usize,
-        j: usize,
-        right_jump: usize,
-        down_jump: usize,
-        max_x_len: usize,
-    ) -> (usize, usize) {
-        let i = i + down_jump;
-        let j = (j + right_jump) % max_x_len;
-        (i, j)
-    }
-
     pub fn run_scenarios(input: &[&str]) -> u64 {
         let input = Arc::new(parse_input(input));
 
-        // (down, right)
-        let scenarios = vec![(1, 1), (1, 3), (1, 5), (1, 7), (2, 1)];
+        // (right, down)
+        let scenarios = vec![(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
 
         let mut handles = Vec::with_capacity(scenarios.len());
         let (tx, rx) = mpsc::channel();
 
-        for (down, right) in scenarios.into_iter() {
+        for (right, down) in scenarios.into_iter() {
             let tx_clone = tx.clone();
             let input = Arc::clone(&input);
 
             handles.push(thread::spawn(move || {
-                let mut counter = 0;
-                let mut i = 0;
-                let mut j = 0;
-                loop {
-                    let result = navigate(i, j, right, down, input[0].len());
-                    i = result.0;
-                    j = result.1;
-                    if i >= input.len() {
-                        break;
-                    }
-                    if input[i][j] == Square::Tree {
-                        counter += 1;
-                    }
-                }
+                let counter = taboggan_trajectory(&input, right, down);
                 tx_clone.send(counter).unwrap();
             }));
         }
@@ -116,7 +81,7 @@ mod puzzle_2 {
             handle.join().unwrap();
         }
 
-        rx.into_iter().product()
+        rx.into_iter().map(|num| num as u64).product()
     }
 }
 
@@ -124,45 +89,35 @@ mod puzzle_2 {
 mod tests {
     use super::*;
 
+    const TEST_INPUT: [&str; 11] = [
+        "..##.........##.........##.........##.........##.........##.......",
+        "#...#...#..#...#...#..#...#...#..#...#...#..#...#...#..#...#...#..",
+        ".#....#..#..#....#..#..#....#..#..#....#..#..#....#..#..#....#..#.",
+        "..#.#...#.#..#.#...#.#..#.#...#.#..#.#...#.#..#.#...#.#..#.#...#.#",
+        ".#...##..#..#...##..#..#...##..#..#...##..#..#...##..#..#...##..#.",
+        "..#.##.......#.##.......#.##.......#.##.......#.##.......#.##.....",
+        ".#.#.#....#.#.#.#....#.#.#.#....#.#.#.#....#.#.#.#....#.#.#.#....#",
+        ".#........#.#........#.#........#.#........#.#........#.#........#",
+        "#.##...#...#.##...#...#.##...#...#.##...#...#.##...#...#.##...#...",
+        "#...##....##...##....##...##....##...##....##...##....##...##....#",
+        ".#..#...#.#.#..#...#.#.#..#...#.#.#..#...#.#.#..#...#.#.#..#...#.#",
+    ];
+
     #[test]
     fn puzzle_1_test() {
-        let input = [
-            "..##.........##.........##.........##.........##.........##.......",
-            "#...#...#..#...#...#..#...#...#..#...#...#..#...#...#..#...#...#..",
-            ".#....#..#..#....#..#..#....#..#..#....#..#..#....#..#..#....#..#.",
-            "..#.#...#.#..#.#...#.#..#.#...#.#..#.#...#.#..#.#...#.#..#.#...#.#",
-            ".#...##..#..#...##..#..#...##..#..#...##..#..#...##..#..#...##..#.",
-            "..#.##.......#.##.......#.##.......#.##.......#.##.......#.##.....",
-            ".#.#.#....#.#.#.#....#.#.#.#....#.#.#.#....#.#.#.#....#.#.#.#....#",
-            ".#........#.#........#.#........#.#........#.#........#.#........#",
-            "#.##...#...#.##...#...#.##...#...#.##...#...#.##...#...#.##...#...",
-            "#...##....##...##....##...##....##...##....##...##....##...##....#",
-            ".#..#...#.#.#..#...#.#.#..#...#.#.#..#...#.#.#..#...#.#.#..#...#.#",
-        ];
-        assert_eq!(taboggan_trajectory::<puzzle_1::Puzzle1>(&input), 7);
+        let input = parse_input(&TEST_INPUT);
+        assert_eq!(taboggan_trajectory(&input, 3, 1), 7);
     }
 
     #[test]
     fn puzzle_1_sol() {
-        assert_eq!(taboggan_trajectory::<puzzle_1::Puzzle1>(&INPUT), 244);
+        let input = parse_input(&INPUT);
+        assert_eq!(taboggan_trajectory(&input, 3, 1), 244);
     }
 
     #[test]
     fn day_3_puzzle_2_test() {
-        let input = [
-            "..##.........##.........##.........##.........##.........##.......",
-            "#...#...#..#...#...#..#...#...#..#...#...#..#...#...#..#...#...#..",
-            ".#....#..#..#....#..#..#....#..#..#....#..#..#....#..#..#....#..#.",
-            "..#.#...#.#..#.#...#.#..#.#...#.#..#.#...#.#..#.#...#.#..#.#...#.#",
-            ".#...##..#..#...##..#..#...##..#..#...##..#..#...##..#..#...##..#.",
-            "..#.##.......#.##.......#.##.......#.##.......#.##.......#.##.....",
-            ".#.#.#....#.#.#.#....#.#.#.#....#.#.#.#....#.#.#.#....#.#.#.#....#",
-            ".#........#.#........#.#........#.#........#.#........#.#........#",
-            "#.##...#...#.##...#...#.##...#...#.##...#...#.##...#...#.##...#...",
-            "#...##....##...##....##...##....##...##....##...##....##...##....#",
-            ".#..#...#.#.#..#...#.#.#..#...#.#.#..#...#.#.#..#...#.#.#..#...#.#",
-        ];
-        assert_eq!(puzzle_2::run_scenarios(&input), 336);
+        assert_eq!(puzzle_2::run_scenarios(&TEST_INPUT), 336);
     }
 
     #[test]
