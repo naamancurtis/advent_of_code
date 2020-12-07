@@ -1,7 +1,20 @@
 # [Advent of Code](ghttps://adventofcode.com/)
 
-This repo just stores my solutions to the advent of code challenges, starting
-with 2020
+This repo stores my solutions to the advent of code challenges, starting
+with 2020. It uses the [cargo-aoc](https://crates.io/crates/cargo-aoc) crate to
+run all the solutions.
 
-I tend to write a unit test to find the correct answer for the puzzle, so if you
-want to verify the solutions feel free to run the test suite with `cargo test`
+```sh
+# To run any given day's solutions
+cargo aoc -d {day} -p {part}
+```
+
+## Years
+
+- [2020](https://github.com/naamancurtis/advent_of_code/tree/master/aoc2020)
+
+## Benchmarks
+
+```sh
+cargo aoc bench -o
+```

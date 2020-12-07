@@ -1,70 +1,69 @@
-use std::error::Error;
-use std::io::{BufRead, BufReader, Read};
-
-// Could probably do the validation inline as you're reading the file (allowing
-// you to jump to the next passport if the one you're already reading is invalid), but
-// that approach is probably overly complex for this problem
-
-pub fn validate_passports<R: Read>(
-    read: R,
-    should_validate_passports: bool,
-) -> Result<u32, Box<dyn Error>> {
-    let reader = BufReader::new(read);
-
-    // Read the file and collect the various lines together into passports, each
-    // entry in the vec is 1 passport
-    let (values, _) = reader.lines().into_iter().fold(
+#[aoc_generator(day4)]
+pub fn generator(input: &str) -> Vec<Vec<(String, String)>> {
+    let (values, _) = input.lines().into_iter().fold(
         (Vec::default(), false),
         |(mut v, create_new_entry), line| {
-            if let Ok(line) = line {
-                let line = line.trim().to_string();
-                if line.is_empty() {
-                    return (v, true);
-                }
-                if create_new_entry {
-                    v.push(line);
-                    return (v, false);
-                }
-                if let Some(last) = v.last_mut() {
-                    last.push(' ');
-                    last.push_str(&line);
-                    return (v, false);
-                }
+            let line = line.trim().to_string();
+            if line.is_empty() {
+                return (v, true);
+            }
+            if create_new_entry {
+                v.push(line);
+                return (v, false);
+            }
+            if let Some(last) = v.last_mut() {
+                last.push(' ');
+                last.push_str(&line);
+                return (v, false);
             }
             (v, create_new_entry)
         },
     );
-    let count = values
+    values
         .into_iter()
-        .filter_map(|v| {
-            let passport_key_values: Vec<(String, String)> = v
-                .split(' ')
+        .map(|v| {
+            v.split(' ')
                 .map(|entry| {
                     let mut key_value = entry.split(':').map(|v| v.to_string());
                     let first = key_value.next().unwrap_or_default();
                     let second = key_value.next().unwrap_or_default();
                     (first, second)
                 })
-                .collect();
+                .collect()
+        })
+        .collect()
+}
 
-            let mut passport_key_count = passport_key_values.len();
-            if should_validate_passports {
-                passport_key_count = passport_key_values
-                    .iter()
-                    .filter(|v| passport_entry_validator(v))
-                    .count();
-            }
-
-            return match passport_key_count {
-                8 => Some(passport_key_values),
-                7 if !passport_key_values.iter().any(|key| &key.0 == "cid") => {
-                    Some(passport_key_values)
-                }
-                _ => None,
-            };
+#[aoc(day4, part1)]
+fn validate_passports(input: &[Vec<(String, String)>]) -> u32 {
+    let count = input
+        .iter()
+        .filter_map(|passports| match passports.len() {
+            8 => Some(()),
+            7 if !passports.iter().any(|key| &key.0 == "cid") => Some(()),
+            _ => None,
         })
         .count();
-    Ok(count as u32)
+    count as u32
+}
+
+#[aoc(day4, part2)]
+fn validate_passports_2(input: &[Vec<(String, String)>]) -> u32 {
+    let count = input
+        .iter()
+        .filter_map(|passports| {
+            match passports
+                .iter()
+                .filter(|p| passport_entry_validator(p))
+                .count()
+            {
+                8 => Some(()),
+                7 if !passports.iter().any(|key| &key.0 == "cid") => Some(()),
+                _ => None,
+            }
+        })
+        .count();
+    count as u32
 }
 
 fn passport_entry_validator((key, value): &(String, String)) -> bool {
@@ -125,7 +124,6 @@ fn date_validator(date: &str, min: u32, max: u32) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
 
     #[test]
     fn puzzle_1_test() {
@@ -144,21 +142,8 @@ hgt:179cm
 hcl:#cfa07d eyr:2025 pid:166559648
 iyr:2011 ecl:brn hgt:59in
             "#;
-        let result = validate_passports(input.as_bytes(), false).unwrap();
+        let input = generator(input);
+        let result = validate_passports(&input);
         assert_eq!(result, 2);
-    }
-
-    #[test]
-    fn puzzle_1_sol() {
-        let file = File::open("./data/day_4.txt").expect("file failed to open");
-        let result = validate_passports(file, false).unwrap();
-        assert_eq!(result, 228);
-    }
-
-    #[test]
-    fn puzzle_2_sol() {
-        let file = File::open("./data/day_4.txt").expect("file failed to open");
-        let result = validate_passports(file, true).unwrap();
-        assert_eq!(result, 175);
     }
 }

@@ -1,2 +1,2 @@
 [workspace]
-members = ["aoc2020"]
+members = ["aoc2020", "aoc2020/target/aoc/aoc-autobuild", "aoc2020/target/aoc/aoc-autobench"]

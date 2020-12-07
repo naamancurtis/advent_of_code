@@ -7,6 +7,8 @@ lazy_static! {
         Regex::new(r"(\d+)\s?(\w+\s\w+) bags?").expect("regex should be fine");
 }
 
+const TARGET: &str = "shiny gold";
+
 pub struct Solution {
     puzzle_1: i32,
     puzzle_2: i64,
@@ -18,9 +20,10 @@ pub struct Solution {
 ///     - `String` - The _parent_ bag type
 ///     - `Vec<(i64, String)` - List of nested bag types `String` and the number `(i64)` of bags
 ///     of that type that must be within the parent bag
-fn generate_map(input: &[String]) -> HashMap<String, Vec<(i64, String)>> {
+#[aoc_generator(day7)]
+pub fn generate_map(input: &str) -> HashMap<String, Vec<(i64, String)>> {
     let mut map = HashMap::new();
-    for line in input {
+    for line in input.lines() {
         let mut split = line.split("bags contain");
         if let Some(bag_type) = split.next() {
             if let Some(nested_bags) = split.next() {
@@ -46,9 +49,8 @@ fn generate_map(input: &[String]) -> HashMap<String, Vec<(i64, String)>> {
     map
 }
 
-pub fn solution(input: &[String], target: &str) -> Solution {
-    let map = generate_map(input);
-
+#[aoc(day7, part1)]
+pub fn solution(map: &HashMap<String, Vec<(i64, String)>>) -> i32 {
     // (i64, bool)
     // `i64` - stores the total number of bags stored within that bag
     // `bool` - stores whether it's possible to store the target bag somewhere
@@ -57,27 +59,27 @@ pub fn solution(input: &[String], target: &str) -> Solution {
 
     // The cache is populated while doing the counting, by the time the counting
     // is finished, we can easily just do a look up to find out how many bags the target bag contains
-    let count = map
-        .keys()
+    map.keys()
         .filter_map(|key| {
-            if recurse_into_bag(&key, &map, &mut cache, target).1 {
+            if recurse_into_bag(&key, &map, &mut cache, false).1 {
                 return Some(());
             }
             None
         })
-        .count();
+        .count() as i32
+}
 
-    Solution {
-        puzzle_1: count as i32,
-        puzzle_2: cache.get(target).unwrap().0,
-    }
+#[aoc(day7, part2)]
+pub fn solution_2(map: &HashMap<String, Vec<(i64, String)>>) -> i64 {
+    let mut cache = HashMap::new();
+    recurse_into_bag(TARGET, &map, &mut cache, true).0
 }
 
 fn recurse_into_bag(
     key: &str,
     map: &HashMap<String, Vec<(i64, String)>>,
     cache: &mut HashMap<String, (i64, bool)>,
-    target: &str,
+    solution_2: bool,
 ) -> (i64, bool) {
     if let Some(value) = cache.get(key) {
         return *value;
@@ -90,15 +92,18 @@ fn recurse_into_bag(
     // other bags within it
     if let Some(child_keys) = map.get(key) {
         for (multiplier, child_key) in child_keys {
-            let (count, can_store) = recurse_into_bag(child_key, map, cache, target);
+            let (count, can_store) = recurse_into_bag(child_key, map, cache, solution_2);
 
             total_count += (multiplier * count) + multiplier;
 
             // If you wanted to specialise for puzzle one, you could break here
             // as if one of the child bags can store the target bag, you don't
             // need to check the rest of the children
-            if can_store || child_key == target {
+            if can_store || child_key == TARGET {
                 can_store_target_bag = true;
+                if !solution_2 {
+                    break;
+                }
             }
         }
     }
@@ -112,51 +117,34 @@ fn recurse_into_bag(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::get_input_from_file;
 
-    const TEST_INPUT_1: [&str; 9] = [
-        "light red bags contain 1 bright white bag, 2 muted yellow bags.",
-        "dark orange bags contain 3 bright white bags, 4 muted yellow bags.",
-        "bright white bags contain 1 shiny gold bag.",
-        "muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.",
-        "shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.",
-        "dark olive bags contain 3 faded blue bags, 4 dotted black bags.",
-        "vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.",
-        "faded blue bags contain no other bags.",
-        "dotted black bags contain no other bags.",
-    ];
+    const TEST_INPUT_1: &str = "light red bags contain 1 bright white bag, 2 muted yellow bags.\n
+        dark orange bags contain 3 bright white bags, 4 muted yellow bags.\n
+        bright white bags contain 1 shiny gold bag.\n
+        muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.\n
+        shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.\n
+        dark olive bags contain 3 faded blue bags, 4 dotted black bags.\n
+        vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.\n
+        faded blue bags contain no other bags.\n
+        dotted black bags contain no other bags.";
 
-    const TEST_INPUT_2: [&str; 7] = [
-        "shiny gold bags contain 2 dark red bags.",
-        "dark red bags contain 2 dark orange bags.",
-        "dark orange bags contain 2 dark yellow bags.",
-        "dark yellow bags contain 2 dark green bags.",
-        "dark green bags contain 2 dark blue bags.",
-        "dark blue bags contain 2 dark violet bags.",
-        "dark violet bags contain no other bags.",
-    ];
+    const TEST_INPUT_2: &str = "shiny gold bags contain 2 dark red bags.\n
+        dark red bags contain 2 dark orange bags.\n
+        dark orange bags contain 2 dark yellow bags.\n
+        dark yellow bags contain 2 dark green bags.\n
+        dark green bags contain 2 dark blue bags.\n
+        dark blue bags contain 2 dark violet bags.\n
+        dark violet bags contain no other bags.";
 
     #[test]
     fn puzzle_1_test() {
-        let input: Vec<String> = TEST_INPUT_1.iter().map(|s| s.to_string()).collect();
-        assert_eq!(solution(&input, "shiny gold").puzzle_1, 4);
-    }
-
-    #[test]
-    fn puzzle_1_sol() {
-        let input = get_input_from_file("./data/day_7.txt");
-        assert_eq!(solution(&input, "shiny gold").puzzle_1, 131);
+        let input = generate_map(TEST_INPUT_1);
+        assert_eq!(solution(&input), 4);
     }
 
     #[test]
     fn puzzle_2_test() {
-        let input: Vec<String> = TEST_INPUT_2.iter().map(|s| s.to_string()).collect();
-        assert_eq!(solution(&input, "shiny gold").puzzle_2, 126);
-    }
-
-    #[test]
-    fn puzzle_2_sol() {
-        let input = get_input_from_file("./data/day_7.txt");
-        assert_eq!(solution(&input, "shiny gold").puzzle_2, 11261);
+        let input = generate_map(TEST_INPUT_2);
+        assert_eq!(solution_2(&input), 126);
     }
 }

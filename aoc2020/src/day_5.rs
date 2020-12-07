@@ -1,13 +1,30 @@
-use crate::get_input_from_file;
+use std::cmp::Ordering;
 
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
 pub struct Seat {
     pub row: u32,
     pub col: u32,
     pub id: u32,
 }
 
-pub fn parse_seat_information(input: String) -> Seat {
+impl PartialOrd for Seat {
+    fn partial_cmp(&self, other: &Seat) -> Option<Ordering> {
+        self.id.partial_cmp(&other.id)
+    }
+}
+
+impl Ord for Seat {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+#[aoc_generator(day5)]
+pub fn generator(input: &str) -> Vec<Seat> {
+    input.lines().map(|l| parse_seat_information(l)).collect()
+}
+
+pub fn parse_seat_information(input: &str) -> Seat {
     let mut min = 0;
     let mut max = 127;
     let mut row = 0;
@@ -36,43 +53,29 @@ pub fn parse_seat_information(input: String) -> Seat {
     }
 }
 
-mod puzzle_1 {
-    use super::*;
-
-    pub fn find_highest_id() -> u32 {
-        let input = get_input_from_file("./data/day_5.txt");
-        if let Some(seat) = input
-            .into_iter()
-            .map(parse_seat_information)
-            .max_by_key(|seat| seat.id)
-        {
-            return seat.id;
-        }
-        unreachable!();
+#[aoc(day5, part1)]
+pub fn find_highest_id(input: &[Seat]) -> u32 {
+    if let Some(seat) = input.iter().max_by_key(|seat| seat.id) {
+        return seat.id;
     }
+    unreachable!();
 }
 
-mod puzzle_2 {
-    use super::*;
-
-    pub fn find_missing_seat() -> u32 {
-        let mut input: Vec<u32> = get_input_from_file("./data/day_5.txt")
-            .into_iter()
-            .map(|s| parse_seat_information(s).id)
-            .collect();
-        input.sort_unstable();
-        let mut missing_id = 0;
-        for seats in input.windows(2).skip(1) {
-            if seats.len() != 2 {
-                continue;
-            };
-            if seats[1] - 1 != seats[0] {
-                missing_id = seats[0] + 1;
-                break;
-            }
+#[aoc(day5, part2)]
+pub fn find_missing_seat(input: &[Seat]) -> u32 {
+    let mut input = input.to_vec();
+    input.sort_unstable();
+    let mut missing_id = 0;
+    for seats in input.windows(2) {
+        if seats.len() != 2 {
+            continue;
+        };
+        if seats[1].id - 1 != seats[0].id {
+            missing_id = seats[0].id + 1;
+            break;
         }
-        missing_id
     }
+    missing_id
 }
 
 #[cfg(test)]
@@ -87,16 +90,6 @@ mod tests {
             col: 5,
             id: 357,
         };
-        assert_eq!(parse_seat_information(input.to_string()), expected)
-    }
-
-    #[test]
-    fn day_5_puzzle_1_sol() {
-        assert_eq!(puzzle_1::find_highest_id(), 885);
-    }
-
-    #[test]
-    fn day_5_puzzle_2_sol() {
-        assert_eq!(puzzle_2::find_missing_seat(), 623);
+        assert_eq!(parse_seat_information(input), expected)
     }
 }
