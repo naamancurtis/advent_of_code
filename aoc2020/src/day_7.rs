@@ -9,11 +9,6 @@ lazy_static! {
 
 const TARGET: &str = "shiny gold";
 
-pub struct Solution {
-    puzzle_1: i32,
-    puzzle_2: i64,
-}
-
 /// Bags that contain `no bags` will not be added to this map
 ///
 /// Types:

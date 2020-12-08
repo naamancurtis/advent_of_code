@@ -11,17 +11,19 @@ pub mod day_4;
 pub mod day_5;
 pub mod day_6;
 pub mod day_7;
+pub mod day_8;
 
 use std::{
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufReader, Read},
     path::Path,
 };
 
-pub fn get_input_from_file<P: AsRef<Path>>(path: P) -> Vec<String> {
+pub fn get_input_from_file<P: AsRef<Path>>(path: P) -> String {
     let file = File::open(path).expect("file failed to open");
-    let reader = BufReader::new(file);
-    reader.lines().filter_map(|s| s.ok()).collect()
+    let mut buf = String::new();
+    BufReader::new(file).read_to_string(&mut buf).ok();
+    buf
 }
 
 aoc_lib! { year = 2020 }
