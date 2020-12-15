@@ -189,6 +189,6 @@ mem[26] = 1";
     #[test]
     fn puzzle_2_test() {
         let input = generator(TEST_INPUT_2);
-        assert_eq!(puzzle_2(&input), 209);
+        assert_eq!(puzzle_2(&input), 208);
     }
 }
