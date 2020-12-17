@@ -3,7 +3,7 @@ use regex::Regex;
 use std::collections::{HashMap, HashSet};
 
 lazy_static! {
-    static ref REGEX: Regex = Regex::new(r"(.+):\s([0-9]+)-([0-9]+)\sor\s([0-9]+)-([0-9]+)")
+    pub static ref REGEX: Regex = Regex::new(r"(.+):\s([0-9]+)-([0-9]+)\sor\s([0-9]+)-([0-9]+)")
         .expect("regex should be fine");
 }
 
@@ -49,7 +49,7 @@ pub fn generator(input: &str) -> Input {
     data
 }
 
-fn parse_ticket(input: &str) -> Vec<usize> {
+pub fn parse_ticket(input: &str) -> Vec<usize> {
     input
         .split(',')
         .filter_map(|v| v.parse::<usize>().ok())
@@ -72,7 +72,7 @@ pub fn puzzle_1(input: &Input) -> usize {
     error_rate
 }
 
-fn generate_consolidated_rules<'a>(rules: impl Iterator<Item = &'a Vec<usize>>) -> Vec<bool> {
+pub fn generate_consolidated_rules<'a>(rules: impl Iterator<Item = &'a Vec<usize>>) -> Vec<bool> {
     let mut consolidated_rules = vec![false; 1000];
     for rule in rules {
         let mut idx = 0;
